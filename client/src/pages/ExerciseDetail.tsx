@@ -33,6 +33,31 @@ const ROUND_OPTIONS: Array<{ value: RoundValue; label: string }> = [
 const iconBtn =
   'flex h-10 w-10 items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-raised hover:text-ink';
 
+// Escala de esfuerzo: verde (liviano) → amarillo → rojo (pesado), según el % del RM.
+const EFFORT_LOW = 50;
+const EFFORT_HIGH = 100;
+const RING_R = 115;
+const RING_CIRC = 2 * Math.PI * RING_R;
+
+function effortRatio(pct: number): number {
+  return Math.max(0, Math.min(1, (pct - EFFORT_LOW) / (EFFORT_HIGH - EFFORT_LOW)));
+}
+
+/** Color del esfuerzo interpolado en HSL. `alpha < 1` para fondos suaves. */
+function effortColor(pct: number, alpha = 1): string {
+  const e = effortRatio(pct);
+  const hue = Math.round(115 - 115 * e);
+  const sat = Math.round(62 + 16 * e);
+  const light = Math.round(46 - 4 * e);
+  return `hsl(${hue} ${sat}% ${light}%${alpha < 1 ? ` / ${alpha}` : ''})`;
+}
+
+function effortLabel(pct: number): string {
+  if (pct < 70) return 'Liviana';
+  if (pct < 90) return 'Media';
+  return 'Pesada';
+}
+
 export function ExerciseDetail() {
   const params = useParams();
   const id = Number(params.id);
@@ -90,6 +115,9 @@ export function ExerciseDetail() {
   const exact = base ? percentWeight(base.rmKg, activePct) : 0;
   const result = roundTo(exact, step);
   const showExact = step !== null && Math.abs(result - exact) > 0.004;
+
+  const loadColor = effortColor(activePct);
+  const ringFill = Math.max(0, Math.min(1, activePct / 100));
 
   const submitNewEntry = async (e: FormEvent) => {
     e.preventDefault();
@@ -210,21 +238,62 @@ export function ExerciseDetail() {
 
       {/* Resultado: el disco */}
       <section aria-label="Carga calculada" className="py-1">
-        <div className="relative mx-auto flex h-60 w-60 items-center justify-center rounded-full border-[10px] border-accent bg-surface shadow-sm">
-          <div aria-hidden className="pointer-events-none absolute inset-2.5 rounded-full border border-line" />
-          <div aria-hidden className="pointer-events-none absolute inset-5 rounded-full border border-line/70" />
-          <div className="px-7 text-center">
-            <p className="text-[13px] font-medium text-ink-muted">
-              {fmtKg(activePct)}% de {fmtKg(base.rmKg)} kg
-            </p>
-            <p className="font-display text-5xl font-semibold tracking-tight text-ink">
-              {customValid ? fmtKg(result) : '—'}
-            </p>
-            <p className="text-sm text-ink-muted">kg</p>
-            {customValid && showExact && (
-              <p className="mt-1 text-xs text-ink-dim">exacto: {fmtKg(exact)} kg</p>
-            )}
+        <div className="relative mx-auto h-60 w-60">
+          <svg viewBox="0 0 240 240" className="h-full w-full">
+            <circle cx="120" cy="120" r={RING_R - 5} fill="var(--c-surface)" />
+            <circle
+              aria-hidden
+              cx="120"
+              cy="120"
+              r="100"
+              fill="none"
+              stroke="var(--c-line)"
+              strokeWidth="1"
+            />
+            <circle
+              cx="120"
+              cy="120"
+              r={RING_R}
+              fill="none"
+              stroke="var(--c-line)"
+              strokeWidth="10"
+            />
+            <circle
+              cx="120"
+              cy="120"
+              r={RING_R}
+              fill="none"
+              stroke={loadColor}
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray={RING_CIRC}
+              strokeDashoffset={RING_CIRC * (1 - ringFill)}
+              transform="rotate(-90 120 120)"
+              className="transition-all duration-500 ease-out"
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="px-7 text-center">
+              <p className="text-[13px] font-medium text-ink-muted">
+                {fmtKg(activePct)}% de {fmtKg(base.rmKg)} kg
+              </p>
+              <p className="font-display text-5xl font-semibold tracking-tight text-ink">
+                {customValid ? fmtKg(result) : '—'}
+              </p>
+              <p className="text-sm text-ink-muted">kg</p>
+              {customValid && showExact && (
+                <p className="mt-1 text-xs text-ink-dim">exacto: {fmtKg(exact)} kg</p>
+              )}
+            </div>
           </div>
+        </div>
+        <div className="mt-3 flex justify-center">
+          <span
+            className="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+            style={{ color: loadColor, backgroundColor: effortColor(activePct, 0.14) }}
+          >
+            Carga {effortLabel(activePct).toLowerCase()}
+          </span>
         </div>
       </section>
 
