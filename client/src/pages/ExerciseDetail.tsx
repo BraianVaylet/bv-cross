@@ -248,7 +248,7 @@ export function ExerciseDetail() {
                   : 'border-line bg-surface text-ink hover:border-accent/40',
               )}
             >
-              <span className="block text-base font-semibold">{p}%</span>
+              <span className={cx('block text-base font-semibold', !active && 'text-ink-muted')}>{p}%</span>
               <span className={cx('block text-xs', active ? 'text-on-accent/75' : 'text-ink-muted')}>
                 {fmtKg(weight)} kg
               </span>
