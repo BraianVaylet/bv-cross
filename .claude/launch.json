@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "server",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@bvcross/server", "dev"],
+      "port": 8787,
+      "autoPort": false
+    },
+    {
+      "name": "client",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@bvcross/client", "dev"],
+      "port": 5173,
+      "autoPort": false
+    }
+  ]
+}
