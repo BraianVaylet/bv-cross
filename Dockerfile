@@ -28,8 +28,9 @@ RUN pnpm install --frozen-lockfile --prod --filter @bvcross/server
 COPY --from=build /app/server/dist server/dist
 COPY --from=build /app/client/dist client/dist
 
-# La DB vive en /data: montá un volumen ahí para persistirla.
-VOLUME /data
+# La DB vive en /data: montá un volumen del hosting ahí para persistirla.
+# (No usamos la instrucción VOLUME: Railway y otros PaaS la rechazan; el
+# volumen se monta desde el panel del hosting en /data.)
 EXPOSE 8787
 
 WORKDIR /app/server
