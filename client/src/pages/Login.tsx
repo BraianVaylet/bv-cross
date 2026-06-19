@@ -63,19 +63,7 @@ export function Login() {
         />
         <Button type="submit" full size="lg" loading={loading}>
           Entrar
-        </Button>
-        {import.meta.env.DEV && (
-          <button
-            type="button"
-            onClick={() => {
-              setAlias('admin');
-              setPassword('admin');
-            }}
-            className="w-full rounded-lg bg-raised px-3 py-2 text-center text-xs text-ink-muted transition-colors hover:text-ink"
-          >
-            Modo prueba: usar <strong className="font-semibold">admin / admin</strong>
-          </button>
-        )}
+        </Button>        
         <p className="text-center">
           <Link to="/recover" className="text-sm font-medium text-ink-muted hover:text-ink">
             ¿Olvidaste tu contraseña?

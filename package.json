@@ -9,13 +9,11 @@
     "pnpm": ">=11"
   },
   "scripts": {
-    "dev": "concurrently -n server,client -c yellow,cyan \"pnpm --filter @bvcross/server dev\" \"pnpm --filter @bvcross/client dev\"",
+    "dev:server": "pnpm --filter @bvcross/server dev",
+    "dev:client": "pnpm --filter @bvcross/client dev",
     "build": "pnpm --filter @bvcross/client build && pnpm --filter @bvcross/server build",
     "start": "pnpm --filter @bvcross/server start",
     "typecheck": "pnpm --filter @bvcross/server typecheck && pnpm --filter @bvcross/client typecheck",
     "db:migrate": "pnpm --filter @bvcross/server db:migrate"
-  },
-  "devDependencies": {
-    "concurrently": "^9.1.0"
   }
 }
