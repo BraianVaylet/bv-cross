@@ -104,3 +104,35 @@ export const AlertIcon = (p: IconProps) => (
     <line x1="12" y1="16" x2="12.01" y2="16" />
   </Icon>
 );
+
+export const PaletteIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 22a10 10 0 1 1 0-20c5.5 0 10 3.6 10 8 0 3-2.5 4-5 4h-1.5a1.5 1.5 0 0 0-1 2.6 1.5 1.5 0 0 1-1 2.6z" />
+    <circle cx="7.5" cy="10.5" r="1" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none" />
+    <circle cx="16.5" cy="10.5" r="1" fill="currentColor" stroke="none" />
+  </Icon>
+);
+
+export const DownloadIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3v10" />
+    <polyline points="8.5 9.5 12 13 15.5 9.5" />
+    <path d="M5 16v2.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V16" />
+  </Icon>
+);
+
+export const ImageIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </Icon>
+);
+
+export const CloseIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </Icon>
+);

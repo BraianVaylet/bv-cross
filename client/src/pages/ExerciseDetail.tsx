@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '../components/BackLink';
 import { EntryFields, type EntryFormValues } from '../components/EntryFields';
-import { PencilIcon, PlusIcon, TrashIcon } from '../components/Icons';
+import { ImageIcon, PencilIcon, PlusIcon, TrashIcon } from '../components/Icons';
 import {
   Button,
   Card,
@@ -10,11 +10,13 @@ import {
   EmptyState,
   ErrorBanner,
   Input,
+  Modal,
   Segmented,
   Skeleton,
   buttonCx,
 } from '../components/ui';
 import { ApiError, api, errorMessage, firstFieldErrors } from '../lib/api';
+import { exerciseImage } from '../lib/exerciseImages';
 import { fmtDate, fmtKg, parseRm, percentWeight, roundTo, todayISO } from '../lib/format';
 import { cx } from '../lib/cx';
 import type { ExerciseDetail as ExerciseDetailType } from '../lib/types';
@@ -79,6 +81,8 @@ export function ExerciseDetail() {
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const [showImage, setShowImage] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -198,6 +202,16 @@ export function ExerciseDetail() {
       <div className="flex items-center justify-between">
         <BackLink to="/">Ejercicios</BackLink>
         <div className="flex items-center gap-1">
+          {exerciseImage(data.name) && (
+            <button
+              type="button"
+              onClick={() => setShowImage(true)}
+              aria-label="Ver técnica del ejercicio"
+              className={iconBtn}
+            >
+              <ImageIcon className="h-5 w-5" />
+            </button>
+          )}
           <Link to={`/exercises/${id}/edit`} aria-label="Editar ejercicio" className={iconBtn}>
             <PencilIcon className="h-5 w-5" />
           </Link>
@@ -413,6 +427,16 @@ export function ExerciseDetail() {
           <PlusIcon className="h-4 w-4" /> Registrar nuevo RM
         </Button>
       )}
+
+      <Modal open={showImage} onClose={() => setShowImage(false)} title={`Técnica · ${data.name}`}>
+        <img
+          src={exerciseImage(data.name) ?? ''}
+          alt={`Demostración de ${data.name}`}
+          loading="lazy"
+          decoding="async"
+          className="mx-auto w-full rounded-xl"
+        />
+      </Modal>
 
       <ConfirmDialog
         open={confirmDelete}

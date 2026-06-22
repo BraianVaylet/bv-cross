@@ -67,6 +67,26 @@ const countEntriesStmt = db.prepare(
   'SELECT COUNT(*) AS n FROM rm_entries WHERE exercise_id = ?',
 );
 
+/**
+ * Ejercicios precargados al registrarse, todos con un RM inicial de 20 kg que
+ * el usuario luego edita. El orden define cómo aparecen al crear la cuenta.
+ */
+export const DEFAULT_EXERCISES = [
+  'Back SQ',
+  'Front SQ',
+  'Snatch',
+  'Clean',
+  'Split Jerk',
+  'DL',
+  'Push Press',
+  'Press Militar',
+  'Floor Press',
+  'Hip Thrust',
+  'Thruster',
+] as const;
+
+const DEFAULT_RM_KG = 20;
+
 function mapEntry(row: {
   id: number;
   rm_kg: number;
@@ -119,6 +139,18 @@ export const exercisesRepo = {
       return exerciseId;
     });
     return tx();
+  },
+
+  /** Precarga los ejercicios por defecto (RM 20 kg) para un usuario nuevo. */
+  seedDefaults(userId: number, date: string): void {
+    const tx = db.transaction(() => {
+      for (const name of DEFAULT_EXERCISES) {
+        const result = insertExerciseStmt.run(userId, name);
+        const exerciseId = Number(result.lastInsertRowid);
+        insertEntryStmt.run(exerciseId, DEFAULT_RM_KG, date, null);
+      }
+    });
+    tx();
   },
 
   updateName(userId: number, exerciseId: number, name: string): boolean {

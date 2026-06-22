@@ -7,6 +7,7 @@ import {
   normalizeAnswer,
   verifySecret,
 } from '../lib/crypto.js';
+import { exercisesRepo } from '../exercises/repo.js';
 import { apiError, readJson } from '../lib/http.js';
 import { rateLimit } from '../lib/rateLimit.js';
 import { questionById, SECURITY_QUESTIONS } from './questions.js';
@@ -130,6 +131,8 @@ authRoutes.post(
       }
       throw err;
     }
+    // Precarga de ejercicios base (RM 20 kg) para que la cuenta no arranque vacía.
+    exercisesRepo.seedDefaults(userId, new Date().toISOString().slice(0, 10));
     createSession(c, userId);
     return c.json({ user: { id: userId, alias: body.alias.trim() } }, 201);
   },

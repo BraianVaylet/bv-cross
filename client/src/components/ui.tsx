@@ -1,6 +1,6 @@
 import { useEffect, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { cx } from '../lib/cx';
-import { AlertIcon } from './Icons';
+import { AlertIcon, CloseIcon } from './Icons';
 
 /* ====== Botones ====== */
 
@@ -322,6 +322,70 @@ export function Segmented<T extends string>({
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/* ====== Modal genérico ====== */
+
+export function Modal({
+  open,
+  title,
+  onClose,
+  children,
+  className,
+}: {
+  open: boolean;
+  title?: string;
+  onClose: () => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      onClick={onClose}
+    >
+      <div
+        className={cx(
+          'w-full max-w-md rounded-2xl border border-line bg-surface p-5 shadow-xl',
+          className,
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {title && (
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <h3 className="font-display text-lg font-semibold text-ink">{title}</h3>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar"
+              className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-raised hover:text-ink"
+            >
+              <CloseIcon className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+        {children}
       </div>
     </div>
   );
