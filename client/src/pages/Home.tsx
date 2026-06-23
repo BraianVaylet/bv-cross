@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { BarbellIcon, ChevronRightIcon, PlusIcon } from '../components/Icons';
+import { BarbellIcon, ChevronRightIcon, MessageSquareIcon, PlusIcon, ZapIcon } from '../components/Icons';
 import { EmptyState, ErrorBanner, Skeleton, buttonCx } from '../components/ui';
 import { api, errorMessage } from '../lib/api';
 import { fmtDate, fmtKg } from '../lib/format';
@@ -58,7 +58,15 @@ export function Home() {
                 className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-accent/40 active:bg-raised"
               >
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-[17px] font-medium text-ink">{e.name}</h2>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <h2 className="truncate text-[17px] font-medium text-ink">{e.name}</h2>
+                    {e.dolor && (
+                      <ZapIcon className="h-3.5 w-3.5 shrink-0 text-danger" aria-label="Dolor" />
+                    )}
+                    {e.observacion && (
+                      <MessageSquareIcon className="h-3.5 w-3.5 shrink-0 text-ink-dim" aria-label="Observación" />
+                    )}
+                  </div>
                   {e.currentRm && (
                     <p className="mt-0.5 text-xs text-ink-dim">RM del {fmtDate(e.currentRm.date)}</p>
                   )}

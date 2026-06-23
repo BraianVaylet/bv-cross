@@ -136,3 +136,15 @@ export const CloseIcon = (p: IconProps) => (
     <line x1="6" y1="6" x2="18" y2="18" />
   </Icon>
 );
+
+export const MessageSquareIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </Icon>
+);
+
+export const ZapIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </Icon>
+);

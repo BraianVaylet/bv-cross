@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '../components/BackLink';
 import { EntryFields, type EntryFormValues } from '../components/EntryFields';
-import { CheckIcon, PencilIcon, PlusIcon, TrashIcon } from '../components/Icons';
+import { CheckIcon, PencilIcon, PlusIcon, TrashIcon, ZapIcon } from '../components/Icons';
 import {
   Button,
   Card,
@@ -11,6 +11,7 @@ import {
   ErrorBanner,
   Input,
   Skeleton,
+  Textarea,
   buttonCx,
 } from '../components/ui';
 import { ApiError, api, errorMessage, firstFieldErrors } from '../lib/api';
@@ -39,6 +40,12 @@ export function EditExercise() {
   const initialized = useRef(false);
   const flashTimer = useRef<number | undefined>(undefined);
 
+  const [observacion, setObservacion] = useState('');
+  const [dolor, setDolor] = useState(false);
+  const [savingMeta, setSavingMeta] = useState(false);
+  const [metaSaved, setMetaSaved] = useState(false);
+  const metaFlashTimer = useRef<number | undefined>(undefined);
+
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<EntryFormValues>(emptyForm());
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
@@ -60,6 +67,8 @@ export function EditExercise() {
       setData(r.exercise);
       if (!initialized.current) {
         setName(r.exercise.name);
+        setObservacion(r.exercise.observacion ?? '');
+        setDolor(r.exercise.dolor);
         initialized.current = true;
       }
     } catch (err) {
@@ -71,7 +80,10 @@ export function EditExercise() {
   useEffect(() => {
     if (Number.isInteger(id) && id > 0) void load();
     else setNotFound(true);
-    return () => window.clearTimeout(flashTimer.current);
+    return () => {
+      window.clearTimeout(flashTimer.current);
+      window.clearTimeout(metaFlashTimer.current);
+    };
   }, [id, load]);
 
   const saveName = async (e: FormEvent) => {
@@ -89,6 +101,24 @@ export function EditExercise() {
       setNameError(fields.name ?? errorMessage(err));
     } finally {
       setSavingName(false);
+    }
+  };
+
+  const saveMeta = async (e: FormEvent) => {
+    e.preventDefault();
+    setSavingMeta(true);
+    try {
+      await api.exercises.updateMeta(id, {
+        observacion: observacion.trim() || null,
+        dolor,
+      });
+      setMetaSaved(true);
+      window.clearTimeout(metaFlashTimer.current);
+      metaFlashTimer.current = window.setTimeout(() => setMetaSaved(false), 2000);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSavingMeta(false);
     }
   };
 
@@ -238,6 +268,44 @@ export function EditExercise() {
               </>
             ) : (
               'Guardar nombre'
+            )}
+          </Button>
+        </form>
+      </Card>
+
+      <Card>
+        <form onSubmit={saveMeta} className="space-y-3">
+          <Textarea
+            label="Observación"
+            placeholder="Ej: Mantener escápulas activas, cuidar la rodilla derecha…"
+            maxLength={500}
+            rows={3}
+            value={observacion}
+            onChange={(e) => setObservacion(e.target.value)}
+          />
+          <label className="flex cursor-pointer items-center gap-3">
+            <div className="relative">
+              <input
+                type="checkbox"
+                className="peer sr-only"
+                checked={dolor}
+                onChange={(e) => setDolor(e.target.checked)}
+              />
+              <div className="h-5 w-5 rounded border border-line bg-surface transition-colors peer-checked:border-danger peer-checked:bg-danger peer-focus-visible:ring-2 peer-focus-visible:ring-danger/30" />
+              {dolor && (
+                <ZapIcon className="absolute inset-0 m-auto h-3 w-3 text-white pointer-events-none" />
+              )}
+            </div>
+            <span className="text-sm font-medium text-ink">Genera dolor</span>
+            <span className="text-xs text-ink-dim">(lesión o molestia)</span>
+          </label>
+          <Button type="submit" variant="secondary" loading={savingMeta}>
+            {metaSaved ? (
+              <>
+                <CheckIcon className="h-4 w-4 text-ok" /> Guardado
+              </>
+            ) : (
+              'Guardar observación'
             )}
           </Button>
         </form>

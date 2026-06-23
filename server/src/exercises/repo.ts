@@ -4,6 +4,8 @@ export type ExerciseListItem = {
   id: number;
   name: string;
   currentRm: { rmKg: number; date: string } | null;
+  observacion: string | null;
+  dolor: boolean;
 };
 
 export type RmEntry = {
@@ -19,10 +21,12 @@ export type ExerciseDetail = {
   name: string;
   createdAt: string;
   entries: RmEntry[];
+  observacion: string | null;
+  dolor: boolean;
 };
 
 const listStmt = db.prepare(
-  `SELECT e.id, e.name, le.rm_kg, le.date
+  `SELECT e.id, e.name, e.observacion, e.dolor, le.rm_kg, le.date
    FROM exercises e
    LEFT JOIN rm_entries le ON le.id = (
      SELECT id FROM rm_entries
@@ -35,7 +39,7 @@ const listStmt = db.prepare(
 );
 
 const exerciseStmt = db.prepare(
-  'SELECT id, name, created_at FROM exercises WHERE id = ? AND user_id = ?',
+  'SELECT id, name, observacion, dolor, created_at FROM exercises WHERE id = ? AND user_id = ?',
 );
 const entriesStmt = db.prepare(
   `SELECT id, rm_kg, date, comment, created_at
@@ -50,6 +54,9 @@ const insertEntryStmt = db.prepare(
 );
 const updateNameStmt = db.prepare(
   "UPDATE exercises SET name = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?",
+);
+const updateMetaStmt = db.prepare(
+  "UPDATE exercises SET observacion = ?, dolor = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?",
 );
 const deleteExerciseStmt = db.prepare(
   'DELETE FROM exercises WHERE id = ? AND user_id = ?',
@@ -108,23 +115,34 @@ export const exercisesRepo = {
     const rows = listStmt.all(userId) as Array<{
       id: number;
       name: string;
+      observacion: string | null;
+      dolor: number;
       rm_kg: number | null;
       date: string | null;
     }>;
     return rows.map((r) => ({
       id: r.id,
       name: r.name,
+      observacion: r.observacion,
+      dolor: r.dolor === 1,
       currentRm: r.rm_kg != null && r.date != null ? { rmKg: r.rm_kg, date: r.date } : null,
     }));
   },
 
   get(userId: number, exerciseId: number): ExerciseDetail | null {
     const ex = exerciseStmt.get(exerciseId, userId) as
-      | { id: number; name: string; created_at: string }
+      | { id: number; name: string; observacion: string | null; dolor: number; created_at: string }
       | undefined;
     if (!ex) return null;
     const entries = (entriesStmt.all(exerciseId) as Parameters<typeof mapEntry>[0][]).map(mapEntry);
-    return { id: ex.id, name: ex.name, createdAt: ex.created_at, entries };
+    return {
+      id: ex.id,
+      name: ex.name,
+      observacion: ex.observacion,
+      dolor: ex.dolor === 1,
+      createdAt: ex.created_at,
+      entries,
+    };
   },
 
   create(
@@ -155,6 +173,14 @@ export const exercisesRepo = {
 
   updateName(userId: number, exerciseId: number, name: string): boolean {
     return updateNameStmt.run(name, exerciseId, userId).changes > 0;
+  },
+
+  updateMeta(
+    userId: number,
+    exerciseId: number,
+    meta: { observacion: string | null; dolor: boolean },
+  ): boolean {
+    return updateMetaStmt.run(meta.observacion, meta.dolor ? 1 : 0, exerciseId, userId).changes > 0;
   },
 
   remove(userId: number, exerciseId: number): boolean {

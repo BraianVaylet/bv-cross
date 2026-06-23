@@ -25,6 +25,10 @@ const entrySchema = z.object({
 
 const createSchema = entrySchema.extend({ name: nameSchema });
 const renameSchema = z.object({ name: nameSchema });
+const metaSchema = z.object({
+  observacion: z.string().trim().max(500, 'Máximo 500 caracteres').nullable().optional(),
+  dolor: z.boolean().optional(),
+});
 
 const toComment = (value?: string) => (value && value.length > 0 ? value : null);
 
@@ -62,6 +66,18 @@ exerciseRoutes.patch('/:id', async (c) => {
   if (!exercisesRepo.updateName(user.id, id, body.name)) {
     throw apiError(404, 'NOT_FOUND', 'No encontramos ese ejercicio.');
   }
+  return c.json({ exercise: exercisesRepo.get(user.id, id) });
+});
+
+exerciseRoutes.patch('/:id/meta', async (c) => {
+  const user = c.get('user');
+  const id = idParam(c, 'id');
+  const body = await readJson(c, metaSchema);
+  const ok = exercisesRepo.updateMeta(user.id, id, {
+    observacion: body.observacion ?? null,
+    dolor: body.dolor ?? false,
+  });
+  if (!ok) throw apiError(404, 'NOT_FOUND', 'No encontramos ese ejercicio.');
   return c.json({ exercise: exercisesRepo.get(user.id, id) });
 });
 

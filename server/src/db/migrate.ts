@@ -1,7 +1,8 @@
 import type Database from 'better-sqlite3';
 import * as m001 from './migrations/001_init.js';
+import * as m002 from './migrations/002_exercise_meta.js';
 
-const MIGRATIONS: Array<{ name: string; sql: string }> = [m001];
+const MIGRATIONS: Array<{ name: string; sql: string }> = [m001, m002];
 
 /**
  * Aplica las migraciones pendientes. Se ejecuta automáticamente al abrir

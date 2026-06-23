@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '../components/BackLink';
 import { EntryFields, type EntryFormValues } from '../components/EntryFields';
-import { ImageIcon, PencilIcon, PlusIcon, TrashIcon } from '../components/Icons';
+import { ImageIcon, MessageSquareIcon, PencilIcon, PlusIcon, TrashIcon, ZapIcon } from '../components/Icons';
 import {
   Button,
   Card,
@@ -230,25 +230,40 @@ export function ExerciseDetail() {
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
-      <Card>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-ink-muted">RM base</span>
-          <span
-            className={cx(
-              'rounded-full px-2 py-0.5 text-[11px] font-medium',
-              isCurrent ? 'bg-accent-soft text-accent' : 'bg-raised text-ink-muted',
-            )}
-          >
-            {isCurrent ? 'Vigente' : 'Histórico'}
-          </span>
-        </div>
-        <p className="mt-1">
-          <span className="font-display text-3xl font-semibold text-ink">{fmtKg(base.rmKg)}</span>
-          <span className="ml-1.5 text-ink-muted">kg</span>
-          <span className="ml-3 text-sm text-ink-dim">{fmtDate(base.date)}</span>
-        </p>
-        {base.comment && <p className="mt-1.5 text-sm italic text-ink-muted">{base.comment}</p>}
-      </Card>
+      <div className="space-y-2">
+        <Card>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-ink-muted">RM base</span>
+            <span
+              className={cx(
+                'rounded-full px-2 py-0.5 text-[11px] font-medium',
+                isCurrent ? 'bg-accent-soft text-accent' : 'bg-raised text-ink-muted',
+              )}
+            >
+              {isCurrent ? 'Vigente' : 'Histórico'}
+            </span>
+          </div>
+          <p className="mt-1">
+            <span className="font-display text-3xl font-semibold text-ink">{fmtKg(base.rmKg)}</span>
+            <span className="ml-1.5 text-ink-muted">kg</span>
+            <span className="ml-3 text-sm text-ink-dim">{fmtDate(base.date)}</span>
+          </p>
+          {base.comment && <p className="mt-1.5 text-sm italic text-ink-muted">{base.comment}</p>}
+        </Card>
+
+        {data.observacion && (
+          <div className="flex items-start gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink-muted">
+            <MessageSquareIcon className="mt-0.5 h-4 w-4 shrink-0 text-ink-dim" />
+            <span>{data.observacion}</span>
+          </div>
+        )}
+        {data.dolor && (
+          <div className="flex items-center gap-1.5 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm font-medium text-danger">
+            <ZapIcon className="h-4 w-4 shrink-0" />
+            Genera dolor
+          </div>
+        )}
+      </div>
 
       {/* Resultado: el disco */}
       <section aria-label="Carga calculada" className="py-1">

@@ -114,6 +114,11 @@ export const api = {
       }),
     removeEntry: (id: number, entryId: number) =>
       request<void>(`/api/exercises/${id}/entries/${entryId}`, { method: 'DELETE' }),
+    updateMeta: (id: number, payload: { observacion?: string | null; dolor?: boolean }) =>
+      request<{ exercise: ExerciseDetail }>(`/api/exercises/${id}/meta`, {
+        method: 'PATCH',
+        body: payload,
+      }),
   },
 };
 
