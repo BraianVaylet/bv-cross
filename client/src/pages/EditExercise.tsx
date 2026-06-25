@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '../components/BackLink';
-import { EntryFields, type EntryFormValues } from '../components/EntryFields';
+import {
+  EntryFields,
+  buildEntryPayload,
+  emptyEntryForm,
+  entryValueLabel,
+  type EntryFormValues,
+} from '../components/EntryFields';
 import { CheckIcon, PencilIcon, PlusIcon, TrashIcon, ZapIcon } from '../components/Icons';
 import {
   Button,
@@ -16,13 +22,13 @@ import {
 } from '../components/ui';
 import { ApiError, api, errorMessage, firstFieldErrors } from '../lib/api';
 import { cx } from '../lib/cx';
-import { fmtDate, fmtKg, parseRm, todayISO } from '../lib/format';
+import { fmtDate, todayISO } from '../lib/format';
 import type { ExerciseDetail as ExerciseDetailType, RmEntry } from '../lib/types';
 
 const iconBtn =
   'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-raised hover:text-ink disabled:pointer-events-none disabled:opacity-40';
 
-const emptyForm = (): EntryFormValues => ({ rm: '', date: todayISO(), comment: '' });
+const emptyForm = (): EntryFormValues => emptyEntryForm(todayISO());
 
 export function EditExercise() {
   const params = useParams();
@@ -42,6 +48,7 @@ export function EditExercise() {
 
   const [observacion, setObservacion] = useState('');
   const [dolor, setDolor] = useState(false);
+  const [gimnastico, setGimnastico] = useState(false);
   const [savingMeta, setSavingMeta] = useState(false);
   const [metaSaved, setMetaSaved] = useState(false);
   const metaFlashTimer = useRef<number | undefined>(undefined);
@@ -69,6 +76,7 @@ export function EditExercise() {
         setName(r.exercise.name);
         setObservacion(r.exercise.observacion ?? '');
         setDolor(r.exercise.dolor);
+        setGimnastico(r.exercise.gimnastico);
         initialized.current = true;
       }
     } catch (err) {
@@ -111,10 +119,12 @@ export function EditExercise() {
       await api.exercises.updateMeta(id, {
         observacion: observacion.trim() || null,
         dolor,
+        gimnastico,
       });
       setMetaSaved(true);
       window.clearTimeout(metaFlashTimer.current);
       metaFlashTimer.current = window.setTimeout(() => setMetaSaved(false), 2000);
+      await load();
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -124,27 +134,28 @@ export function EditExercise() {
 
   const startEdit = (entry: RmEntry) => {
     setEditingId(entry.id);
-    setEditValues({ rm: String(entry.rmKg), date: entry.date, comment: entry.comment ?? '' });
+    setEditValues({
+      rm: entry.rmKg != null ? String(entry.rmKg) : '',
+      reps: entry.reps != null ? String(entry.reps) : '',
+      date: entry.date,
+      comment: entry.comment ?? '',
+    });
     setEditErrors({});
     setError(null);
   };
 
   const saveEdit = async (e: FormEvent) => {
     e.preventDefault();
-    if (editingId === null) return;
-    const rmKg = parseRm(editValues.rm);
-    if (rmKg === null) {
-      setEditErrors({ rmKg: 'Ingresá un número mayor a 0' });
+    if (editingId === null || !data) return;
+    const built = buildEntryPayload(data.gimnastico, editValues);
+    if ('error' in built) {
+      setEditErrors(built.error);
       return;
     }
     setEditErrors({});
     setSavingEdit(true);
     try {
-      await api.exercises.updateEntry(id, editingId, {
-        rmKg,
-        date: editValues.date,
-        comment: editValues.comment.trim() || undefined,
-      });
+      await api.exercises.updateEntry(id, editingId, built.payload);
       await load();
       setEditingId(null);
     } catch (err) {
@@ -157,19 +168,16 @@ export function EditExercise() {
 
   const saveAdd = async (e: FormEvent) => {
     e.preventDefault();
-    const rmKg = parseRm(addValues.rm);
-    if (rmKg === null) {
-      setAddErrors({ rmKg: 'Ingresá un número mayor a 0' });
+    if (!data) return;
+    const built = buildEntryPayload(data.gimnastico, addValues);
+    if ('error' in built) {
+      setAddErrors(built.error);
       return;
     }
     setAddErrors({});
     setSavingAdd(true);
     try {
-      await api.exercises.addEntry(id, {
-        rmKg,
-        date: addValues.date,
-        comment: addValues.comment.trim() || undefined,
-      });
+      await api.exercises.addEntry(id, built.payload);
       await load();
       setAddOpen(false);
       setAddValues(emptyForm());
@@ -243,6 +251,7 @@ export function EditExercise() {
   }
 
   const single = data.entries.length === 1;
+  const historyTitle = data.gimnastico ? 'Historial de marcas' : 'Historial de RMs';
 
   return (
     <div className="space-y-5">
@@ -275,6 +284,20 @@ export function EditExercise() {
 
       <Card>
         <form onSubmit={saveMeta} className="space-y-3">
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-3">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-accent)]"
+              checked={gimnastico}
+              onChange={(e) => setGimnastico(e.target.checked)}
+            />
+            <span>
+              <span className="block text-sm font-medium text-ink">Ejercicio gimnástico</span>
+              <span className="block text-xs text-ink-dim">
+                Sin cálculo de cargas. Registra el máximo de repeticiones (opcional).
+              </span>
+            </span>
+          </label>
           <Textarea
             label="Observación"
             placeholder="Ej: Mantener escápulas activas, cuidar la rodilla derecha…"
@@ -313,15 +336,22 @@ export function EditExercise() {
 
       <section className="space-y-2.5">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-lg font-semibold text-ink">Historial de RMs</h2>
-          {single && <span className="text-xs text-ink-dim">El único RM no se puede borrar</span>}
+          <h2 className="font-display text-lg font-semibold text-ink">{historyTitle}</h2>
+          {single && (
+            <span className="text-xs text-ink-dim">El único registro no se puede borrar</span>
+          )}
         </div>
 
         {data.entries.map((entry) =>
           editingId === entry.id ? (
             <Card key={entry.id} className="space-y-4">
               <form onSubmit={saveEdit} className="space-y-4">
-                <EntryFields values={editValues} onChange={setEditValues} errors={editErrors} />
+                <EntryFields
+                  values={editValues}
+                  onChange={setEditValues}
+                  errors={editErrors}
+                  gimnastico={data.gimnastico}
+                />
                 <div className="flex gap-2.5">
                   <Button
                     variant="secondary"
@@ -344,7 +374,7 @@ export function EditExercise() {
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-ink">
-                  {fmtKg(entry.rmKg)} kg
+                  {entryValueLabel(entry, data.gimnastico)}
                   <span className="ml-2 text-xs font-normal text-ink-dim">{fmtDate(entry.date)}</span>
                 </p>
                 {entry.comment && (
@@ -353,7 +383,7 @@ export function EditExercise() {
               </div>
               <button
                 type="button"
-                aria-label={`Editar RM del ${fmtDate(entry.date)}`}
+                aria-label={`Editar registro del ${fmtDate(entry.date)}`}
                 className={iconBtn}
                 onClick={() => startEdit(entry)}
               >
@@ -361,7 +391,7 @@ export function EditExercise() {
               </button>
               <button
                 type="button"
-                aria-label={`Borrar RM del ${fmtDate(entry.date)}`}
+                aria-label={`Borrar registro del ${fmtDate(entry.date)}`}
                 className={cx(iconBtn, 'hover:text-danger')}
                 disabled={single}
                 onClick={() => setEntryToDelete(entry)}
@@ -374,9 +404,16 @@ export function EditExercise() {
 
         {addOpen ? (
           <Card className="space-y-4">
-            <h3 className="font-display text-base font-semibold text-ink">Agregar RM</h3>
+            <h3 className="font-display text-base font-semibold text-ink">
+              {data.gimnastico ? 'Agregar marca' : 'Agregar RM'}
+            </h3>
             <form onSubmit={saveAdd} className="space-y-4">
-              <EntryFields values={addValues} onChange={setAddValues} errors={addErrors} />
+              <EntryFields
+                values={addValues}
+                onChange={setAddValues}
+                errors={addErrors}
+                gimnastico={data.gimnastico}
+              />
               <div className="flex gap-2.5">
                 <Button variant="secondary" full onClick={() => setAddOpen(false)} disabled={savingAdd}>
                   Cancelar
@@ -397,7 +434,7 @@ export function EditExercise() {
               setAddOpen(true);
             }}
           >
-            <PlusIcon className="h-4 w-4" /> Agregar RM
+            <PlusIcon className="h-4 w-4" /> {data.gimnastico ? 'Agregar marca' : 'Agregar RM'}
           </Button>
         )}
       </section>
@@ -416,10 +453,10 @@ export function EditExercise() {
 
       <ConfirmDialog
         open={entryToDelete !== null}
-        title="¿Borrar este RM?"
+        title="¿Borrar este registro?"
         message={
           entryToDelete
-            ? `Se borra el registro de ${fmtKg(entryToDelete.rmKg)} kg del ${fmtDate(entryToDelete.date)}.`
+            ? `Se borra el registro de ${entryValueLabel(entryToDelete, data.gimnastico)} del ${fmtDate(entryToDelete.date)}.`
             : ''
         }
         confirmLabel="Borrar"
@@ -431,7 +468,7 @@ export function EditExercise() {
       <ConfirmDialog
         open={confirmDeleteEx}
         title={`¿Eliminar «${data.name}»?`}
-        message="Se borra el ejercicio con todo su historial de RMs. No se puede deshacer."
+        message="Se borra el ejercicio con todo su historial. No se puede deshacer."
         confirmLabel="Eliminar"
         loading={deletingEx}
         onConfirm={deleteExercise}

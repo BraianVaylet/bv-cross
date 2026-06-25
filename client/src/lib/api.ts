@@ -1,4 +1,5 @@
 import type {
+  CreateInput,
   EntryInput,
   ExerciseDetail,
   ExerciseListItem,
@@ -94,7 +95,7 @@ export const api = {
   exercises: {
     list: () => request<{ exercises: ExerciseListItem[] }>('/api/exercises'),
     get: (id: number) => request<{ exercise: ExerciseDetail }>(`/api/exercises/${id}`),
-    create: (payload: EntryInput & { name: string }) =>
+    create: (payload: CreateInput) =>
       request<{ exercise: ExerciseDetail }>('/api/exercises', { method: 'POST', body: payload }),
     rename: (id: number, name: string) =>
       request<{ exercise: ExerciseDetail }>(`/api/exercises/${id}`, {
@@ -114,7 +115,10 @@ export const api = {
       }),
     removeEntry: (id: number, entryId: number) =>
       request<void>(`/api/exercises/${id}/entries/${entryId}`, { method: 'DELETE' }),
-    updateMeta: (id: number, payload: { observacion?: string | null; dolor?: boolean }) =>
+    updateMeta: (
+      id: number,
+      payload: { observacion?: string | null; dolor?: boolean; gimnastico?: boolean },
+    ) =>
       request<{ exercise: ExerciseDetail }>(`/api/exercises/${id}/meta`, {
         method: 'PATCH',
         body: payload,

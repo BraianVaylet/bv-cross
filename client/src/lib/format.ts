@@ -37,3 +37,9 @@ export function parseRm(value: string): number | null {
   const n = Number(value.trim().replace(',', '.'));
   return Number.isFinite(n) && n > 0 ? n : null;
 }
+
+/** Parsea repeticiones: entero > 0. Null si no es válido. */
+export function parseReps(value: string): number | null {
+  const n = Number(value.trim());
+  return Number.isInteger(n) && n > 0 ? n : null;
+}

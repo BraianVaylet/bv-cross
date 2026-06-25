@@ -67,11 +67,28 @@ export function Home() {
                       <MessageSquareIcon className="h-3.5 w-3.5 shrink-0 text-ink-dim" aria-label="Observación" />
                     )}
                   </div>
-                  {e.currentRm && (
-                    <p className="mt-0.5 text-xs text-ink-dim">RM del {fmtDate(e.currentRm.date)}</p>
-                  )}
+                  {e.gimnastico
+                    ? e.currentReps && (
+                        <p className="mt-0.5 text-xs text-ink-dim">
+                          Marca del {fmtDate(e.currentReps.date)}
+                        </p>
+                      )
+                    : e.currentRm && (
+                        <p className="mt-0.5 text-xs text-ink-dim">RM del {fmtDate(e.currentRm.date)}</p>
+                      )}
                 </div>
-                {e.currentRm ? (
+                {e.gimnastico ? (
+                  e.currentReps ? (
+                    <p className="shrink-0 text-right">
+                      <span className="font-display text-2xl font-semibold text-ink">
+                        {e.currentReps.reps}
+                      </span>
+                      <span className="ml-1 text-sm text-ink-muted">reps</span>
+                    </p>
+                  ) : (
+                    <span className="shrink-0 text-sm text-ink-dim">Sin marca</span>
+                  )
+                ) : e.currentRm ? (
                   <p className="shrink-0 text-right">
                     <span className="font-display text-2xl font-semibold text-ink">
                       {fmtKg(e.currentRm.rmKg)}

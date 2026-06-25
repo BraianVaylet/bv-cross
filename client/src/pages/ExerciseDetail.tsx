@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BackLink } from '../components/BackLink';
-import { EntryFields, type EntryFormValues } from '../components/EntryFields';
+import {
+  EntryFields,
+  buildEntryPayload,
+  emptyEntryForm,
+  type EntryFormValues,
+} from '../components/EntryFields';
 import { ImageIcon, MessageSquareIcon, PencilIcon, PlusIcon, TrashIcon, ZapIcon } from '../components/Icons';
 import {
   Button,
@@ -17,7 +22,7 @@ import {
 } from '../components/ui';
 import { ApiError, api, errorMessage, firstFieldErrors } from '../lib/api';
 import { exerciseImage } from '../lib/exerciseImages';
-import { fmtDate, fmtKg, parseRm, percentWeight, roundTo, todayISO } from '../lib/format';
+import { fmtDate, fmtKg, percentWeight, roundTo, todayISO } from '../lib/format';
 import { cx } from '../lib/cx';
 import type { ExerciseDetail as ExerciseDetailType } from '../lib/types';
 import { useLocalStorage } from '../lib/useLocalStorage';
@@ -75,7 +80,7 @@ export function ExerciseDetail() {
   const [round, setRound] = useLocalStorage<RoundValue>('bv-round', '2.5');
 
   const [showNewRm, setShowNewRm] = useState(false);
-  const [newEntry, setNewEntry] = useState<EntryFormValues>({ rm: '', date: todayISO(), comment: '' });
+  const [newEntry, setNewEntry] = useState<EntryFormValues>(emptyEntryForm(todayISO()));
   const [entryErrors, setEntryErrors] = useState<Record<string, string>>({});
   const [savingEntry, setSavingEntry] = useState(false);
 
@@ -110,13 +115,15 @@ export function ExerciseDetail() {
     [entries, baseId],
   );
   const isCurrent = base !== null && entries[0]?.id === base.id;
+  const gym = data?.gimnastico ?? false;
 
   const customNum = custom === '' ? null : Number(custom.replace(',', '.'));
   const customValid =
     customNum === null || (Number.isFinite(customNum) && customNum > 0 && customNum <= 200);
   const activePct = customNum !== null && customValid ? customNum : pct;
   const step = round === 'exact' ? null : Number(round);
-  const exact = base ? percentWeight(base.rmKg, activePct) : 0;
+  const rmKg = base?.rmKg ?? 0;
+  const exact = percentWeight(rmKg, activePct);
   const result = roundTo(exact, step);
   const showExact = step !== null && Math.abs(result - exact) > 0.004;
 
@@ -125,23 +132,20 @@ export function ExerciseDetail() {
 
   const submitNewEntry = async (e: FormEvent) => {
     e.preventDefault();
-    const rmKg = parseRm(newEntry.rm);
-    if (rmKg === null) {
-      setEntryErrors({ rmKg: 'Ingresá un número mayor a 0' });
+    if (!data) return;
+    const built = buildEntryPayload(gym, newEntry);
+    if ('error' in built) {
+      setEntryErrors(built.error);
       return;
     }
     setEntryErrors({});
     setSavingEntry(true);
     try {
-      const r = await api.exercises.addEntry(id, {
-        rmKg,
-        date: newEntry.date,
-        comment: newEntry.comment.trim() || undefined,
-      });
+      const r = await api.exercises.addEntry(id, built.payload);
       await load();
       setBaseId(r.entry.id);
       setShowNewRm(false);
-      setNewEntry({ rm: '', date: todayISO(), comment: '' });
+      setNewEntry(emptyEntryForm(todayISO()));
     } catch (err) {
       const fields = firstFieldErrors(err);
       setEntryErrors(Object.keys(fields).length > 0 ? fields : { rmKg: errorMessage(err) });
@@ -226,14 +230,23 @@ export function ExerciseDetail() {
         </div>
       </div>
 
-      <h1 className="font-display text-[26px] font-semibold leading-tight text-ink">{data.name}</h1>
+      <div className="flex items-center gap-2">
+        <h1 className="font-display text-[26px] font-semibold leading-tight text-ink">{data.name}</h1>
+        {gym && (
+          <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent">
+            Gimnástico
+          </span>
+        )}
+      </div>
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <div className="space-y-2">
         <Card>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-ink-muted">RM base</span>
+            <span className="text-sm font-medium text-ink-muted">
+              {gym ? 'Máximo de reps' : 'RM base'}
+            </span>
             <span
               className={cx(
                 'rounded-full px-2 py-0.5 text-[11px] font-medium',
@@ -244,8 +257,19 @@ export function ExerciseDetail() {
             </span>
           </div>
           <p className="mt-1">
-            <span className="font-display text-3xl font-semibold text-ink">{fmtKg(base.rmKg)}</span>
-            <span className="ml-1.5 text-ink-muted">kg</span>
+            {gym ? (
+              <>
+                <span className="font-display text-3xl font-semibold text-ink">
+                  {base.reps != null ? base.reps : '—'}
+                </span>
+                <span className="ml-1.5 text-ink-muted">reps</span>
+              </>
+            ) : (
+              <>
+                <span className="font-display text-3xl font-semibold text-ink">{fmtKg(base.rmKg ?? 0)}</span>
+                <span className="ml-1.5 text-ink-muted">kg</span>
+              </>
+            )}
             <span className="ml-3 text-sm text-ink-dim">{fmtDate(base.date)}</span>
           </p>
           {base.comment && <p className="mt-1.5 text-sm italic text-ink-muted">{base.comment}</p>}
@@ -265,117 +289,121 @@ export function ExerciseDetail() {
         )}
       </div>
 
-      {/* Resultado: el disco */}
-      <section aria-label="Carga calculada" className="py-1">
-        <div className="relative mx-auto h-60 w-60">
-          <svg viewBox="0 0 240 240" className="h-full w-full">
-            <circle cx="120" cy="120" r={RING_R - 5} fill="var(--c-surface)" />
-            <circle
-              aria-hidden
-              cx="120"
-              cy="120"
-              r="100"
-              fill="none"
-              stroke="var(--c-line)"
-              strokeWidth="1"
-            />
-            <circle
-              cx="120"
-              cy="120"
-              r={RING_R}
-              fill="none"
-              stroke="var(--c-line)"
-              strokeWidth="10"
-            />
-            <circle
-              cx="120"
-              cy="120"
-              r={RING_R}
-              fill="none"
-              stroke={loadColor}
-              strokeWidth="10"
-              strokeLinecap="round"
-              strokeDasharray={RING_CIRC}
-              strokeDashoffset={RING_CIRC * (1 - ringFill)}
-              transform="rotate(-90 120 120)"
-              className="transition-all duration-500 ease-out"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="px-7 text-center">
-              <p className="text-[13px] font-medium text-ink-muted">
-                {fmtKg(activePct)}% de {fmtKg(base.rmKg)} kg
-              </p>
-              <p className="font-display text-5xl font-semibold tracking-tight text-ink">
-                {customValid ? fmtKg(result) : '—'}
-              </p>
-              <p className="text-sm text-ink-muted">kg</p>
-              {customValid && showExact && (
-                <p className="mt-1 text-xs text-ink-dim">exacto: {fmtKg(exact)} kg</p>
-              )}
+      {!gym && (
+        <>
+          {/* Resultado: el disco */}
+          <section aria-label="Carga calculada" className="py-1">
+            <div className="relative mx-auto h-60 w-60">
+              <svg viewBox="0 0 240 240" className="h-full w-full">
+                <circle cx="120" cy="120" r={RING_R - 5} fill="var(--c-surface)" />
+                <circle
+                  aria-hidden
+                  cx="120"
+                  cy="120"
+                  r="100"
+                  fill="none"
+                  stroke="var(--c-line)"
+                  strokeWidth="1"
+                />
+                <circle
+                  cx="120"
+                  cy="120"
+                  r={RING_R}
+                  fill="none"
+                  stroke="var(--c-line)"
+                  strokeWidth="10"
+                />
+                <circle
+                  cx="120"
+                  cy="120"
+                  r={RING_R}
+                  fill="none"
+                  stroke={loadColor}
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray={RING_CIRC}
+                  strokeDashoffset={RING_CIRC * (1 - ringFill)}
+                  transform="rotate(-90 120 120)"
+                  className="transition-all duration-500 ease-out"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="px-7 text-center">
+                  <p className="text-[13px] font-medium text-ink-muted">
+                    {fmtKg(activePct)}% de {fmtKg(base.rmKg ?? 0)} kg
+                  </p>
+                  <p className="font-display text-5xl font-semibold tracking-tight text-ink">
+                    {customValid ? fmtKg(result) : '—'}
+                  </p>
+                  <p className="text-sm text-ink-muted">kg</p>
+                  {customValid && showExact && (
+                    <p className="mt-1 text-xs text-ink-dim">exacto: {fmtKg(exact)} kg</p>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="mt-3 flex justify-center">
-          <span
-            className="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
-            style={{ color: loadColor, backgroundColor: effortColor(activePct, 0.14) }}
-          >
-            Carga {effortLabel(activePct).toLowerCase()}
-          </span>
-        </div>
-      </section>
-
-      <div className="grid grid-cols-3 gap-2">
-        {PRESET_PCTS.map((p) => {
-          const active = custom === '' && pct === p;
-          const weight = roundTo(percentWeight(base.rmKg, p), step);
-          return (
-            <button
-              key={p}
-              type="button"
-              aria-pressed={active}
-              onClick={() => {
-                setPct(p);
-                setCustom('');
-              }}
-              className={cx(
-                'rounded-xl border px-2 py-2.5 text-center transition-colors',
-                active
-                  ? 'border-accent bg-accent text-on-accent'
-                  : 'border-line bg-surface text-ink hover:border-accent/40',
-              )}
-            >
-              <span className={cx('block text-base font-semibold', !active && 'text-ink-muted')}>{p}%</span>
-              <span className={cx('block text-xs', active ? 'text-on-accent/75' : 'text-ink-muted')}>
-                {fmtKg(weight)} kg
+            <div className="mt-3 flex justify-center">
+              <span
+                className="rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+                style={{ color: loadColor, backgroundColor: effortColor(activePct, 0.14) }}
+              >
+                Carga {effortLabel(activePct).toLowerCase()}
               </span>
-            </button>
-          );
-        })}
-      </div>
+            </div>
+          </section>
 
-      <Card className="space-y-4">
-        <Input
-          label="Porcentaje personalizado"
-          type="number"
-          inputMode="decimal"
-          min="1"
-          max="200"
-          step="0.5"
-          suffix="%"
-          placeholder="Ej: 72,5"
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-          error={customValid ? undefined : 'Ingresá un porcentaje entre 1 y 200'}
-        />
-        <Segmented
-          label="Redondeo (kg)"
-          options={ROUND_OPTIONS}
-          value={round}
-          onChange={setRound}
-        />
-      </Card>
+          <div className="grid grid-cols-3 gap-2">
+            {PRESET_PCTS.map((p) => {
+              const active = custom === '' && pct === p;
+              const weight = roundTo(percentWeight(base.rmKg ?? 0, p), step);
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    setPct(p);
+                    setCustom('');
+                  }}
+                  className={cx(
+                    'rounded-xl border px-2 py-2.5 text-center transition-colors',
+                    active
+                      ? 'border-accent bg-accent text-on-accent'
+                      : 'border-line bg-surface text-ink hover:border-accent/40',
+                  )}
+                >
+                  <span className={cx('block text-base font-semibold', !active && 'text-ink-muted')}>{p}%</span>
+                  <span className={cx('block text-xs', active ? 'text-on-accent/75' : 'text-ink-muted')}>
+                    {fmtKg(weight)} kg
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <Card className="space-y-4">
+            <Input
+              label="Porcentaje personalizado"
+              type="number"
+              inputMode="decimal"
+              min="1"
+              max="200"
+              step="0.5"
+              suffix="%"
+              placeholder="Ej: 72,5"
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              error={customValid ? undefined : 'Ingresá un porcentaje entre 1 y 200'}
+            />
+            <Segmented
+              label="Redondeo (kg)"
+              options={ROUND_OPTIONS}
+              value={round}
+              onChange={setRound}
+            />
+          </Card>
+        </>
+      )}
 
       <section className="space-y-2.5">
         <div className="flex items-baseline justify-between">
@@ -407,7 +435,16 @@ export function ExerciseDetail() {
                 {e.comment && <p className="mt-0.5 truncate text-xs text-ink-muted">{e.comment}</p>}
               </div>
               <p className="shrink-0 font-display text-lg font-semibold text-ink">
-                {fmtKg(e.rmKg)} <span className="text-xs font-normal text-ink-muted">kg</span>
+                {gym ? (
+                  <>
+                    {e.reps != null ? e.reps : '—'}{' '}
+                    <span className="text-xs font-normal text-ink-muted">reps</span>
+                  </>
+                ) : (
+                  <>
+                    {fmtKg(e.rmKg ?? 0)} <span className="text-xs font-normal text-ink-muted">kg</span>
+                  </>
+                )}
               </p>
             </button>
           );
@@ -416,9 +453,11 @@ export function ExerciseDetail() {
 
       {showNewRm ? (
         <Card className="space-y-4">
-          <h3 className="font-display text-base font-semibold text-ink">Registrar nuevo RM</h3>
+          <h3 className="font-display text-base font-semibold text-ink">
+            {gym ? 'Registrar nueva marca' : 'Registrar nuevo RM'}
+          </h3>
           <form onSubmit={submitNewEntry} className="space-y-4">
-            <EntryFields values={newEntry} onChange={setNewEntry} errors={entryErrors} />
+            <EntryFields values={newEntry} onChange={setNewEntry} errors={entryErrors} gimnastico={gym} />
             <div className="flex gap-2.5">
               <Button variant="secondary" full onClick={() => setShowNewRm(false)} disabled={savingEntry}>
                 Cancelar
@@ -434,12 +473,12 @@ export function ExerciseDetail() {
           variant="secondary"
           full
           onClick={() => {
-            setNewEntry({ rm: '', date: todayISO(), comment: '' });
+            setNewEntry(emptyEntryForm(todayISO()));
             setEntryErrors({});
             setShowNewRm(true);
           }}
         >
-          <PlusIcon className="h-4 w-4" /> Registrar nuevo RM
+          <PlusIcon className="h-4 w-4" /> {gym ? 'Registrar nueva marca' : 'Registrar nuevo RM'}
         </Button>
       )}
 
@@ -456,7 +495,7 @@ export function ExerciseDetail() {
       <ConfirmDialog
         open={confirmDelete}
         title={`¿Eliminar «${data.name}»?`}
-        message="Se borra el ejercicio con todo su historial de RMs. No se puede deshacer."
+        message="Se borra el ejercicio con todo su historial. No se puede deshacer."
         confirmLabel="Eliminar"
         loading={deleting}
         onConfirm={onDelete}

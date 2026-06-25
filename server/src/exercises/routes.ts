@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { requireAuth, type AppEnv } from '../auth/session.js';
 import { apiError, idParam, readJson } from '../lib/http.js';
-import { exercisesRepo } from './repo.js';
+import { exercisesRepo, type EntryData } from './repo.js';
 
 const nameSchema = z.string().trim().min(1, 'Ingresá un nombre').max(60, 'Máximo 60 caracteres');
 
@@ -14,23 +14,61 @@ const dateSchema = z
     return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
   }, 'Fecha inexistente');
 
+const rmKgSchema = z
+  .number({ invalid_type_error: 'Ingresá un número' })
+  .positive('Debe ser mayor a 0')
+  .max(1000, 'Valor fuera de rango');
+
+const repsSchema = z
+  .number({ invalid_type_error: 'Ingresá un número' })
+  .int('Debe ser un número entero')
+  .positive('Debe ser mayor a 0')
+  .max(1000, 'Valor fuera de rango');
+
+// rmKg/reps son opcionales a nivel schema: la obligatoriedad depende del modo
+// del ejercicio (gimnástico o no), que se valida más abajo según contexto.
 const entrySchema = z.object({
-  rmKg: z
-    .number({ invalid_type_error: 'Ingresá un número' })
-    .positive('Debe ser mayor a 0')
-    .max(1000, 'Valor fuera de rango'),
+  rmKg: rmKgSchema.nullable().optional(),
+  reps: repsSchema.nullable().optional(),
   date: dateSchema,
   comment: z.string().trim().max(300, 'Máximo 300 caracteres').optional(),
 });
 
-const createSchema = entrySchema.extend({ name: nameSchema });
-const renameSchema = z.object({ name: nameSchema });
-const metaSchema = z.object({
+const createSchema = entrySchema.extend({
+  name: nameSchema,
+  gimnastico: z.boolean().optional(),
   observacion: z.string().trim().max(500, 'Máximo 500 caracteres').nullable().optional(),
   dolor: z.boolean().optional(),
 });
 
+const renameSchema = z.object({ name: nameSchema });
+const metaSchema = z.object({
+  observacion: z.string().trim().max(500, 'Máximo 500 caracteres').nullable().optional(),
+  dolor: z.boolean().optional(),
+  gimnastico: z.boolean().optional(),
+});
+
 const toComment = (value?: string) => (value && value.length > 0 ? value : null);
+
+/**
+ * Construye el registro según el modo del ejercicio. En modo RM el peso es
+ * obligatorio; en modo gimnástico las repeticiones son opcionales. Lanza 400
+ * con error de campo si falta el RM en un ejercicio común.
+ */
+function buildEntry(
+  gimnastico: boolean,
+  body: { rmKg?: number | null; reps?: number | null; date: string; comment?: string },
+): EntryData {
+  if (gimnastico) {
+    return { rmKg: null, reps: body.reps ?? null, date: body.date, comment: toComment(body.comment) };
+  }
+  if (body.rmKg == null) {
+    throw apiError(400, 'VALIDATION', 'Revisá los datos ingresados.', {
+      rmKg: ['Ingresá un número mayor a 0'],
+    });
+  }
+  return { rmKg: body.rmKg, reps: null, date: body.date, comment: toComment(body.comment) };
+}
 
 export const exerciseRoutes = new Hono<AppEnv>();
 
@@ -44,10 +82,13 @@ exerciseRoutes.get('/', (c) => {
 exerciseRoutes.post('/', async (c) => {
   const user = c.get('user');
   const body = await readJson(c, createSchema);
-  const id = exercisesRepo.create(user.id, body.name, {
-    rmKg: body.rmKg,
-    date: body.date,
-    comment: toComment(body.comment),
+  const gimnastico = body.gimnastico ?? false;
+  const id = exercisesRepo.create(user.id, {
+    name: body.name,
+    gimnastico,
+    observacion: body.observacion ?? null,
+    dolor: body.dolor ?? false,
+    entry: buildEntry(gimnastico, body),
   });
   return c.json({ exercise: exercisesRepo.get(user.id, id) }, 201);
 });
@@ -73,9 +114,12 @@ exerciseRoutes.patch('/:id/meta', async (c) => {
   const user = c.get('user');
   const id = idParam(c, 'id');
   const body = await readJson(c, metaSchema);
+  const current = exercisesRepo.get(user.id, id);
+  if (!current) throw apiError(404, 'NOT_FOUND', 'No encontramos ese ejercicio.');
   const ok = exercisesRepo.updateMeta(user.id, id, {
     observacion: body.observacion ?? null,
     dolor: body.dolor ?? false,
+    gimnastico: body.gimnastico ?? current.gimnastico,
   });
   if (!ok) throw apiError(404, 'NOT_FOUND', 'No encontramos ese ejercicio.');
   return c.json({ exercise: exercisesRepo.get(user.id, id) });
@@ -93,11 +137,9 @@ exerciseRoutes.post('/:id/entries', async (c) => {
   const user = c.get('user');
   const id = idParam(c, 'id');
   const body = await readJson(c, entrySchema);
-  const entry = exercisesRepo.addEntry(user.id, id, {
-    rmKg: body.rmKg,
-    date: body.date,
-    comment: toComment(body.comment),
-  });
+  const mode = exercisesRepo.gimnasticoMode(user.id, id);
+  if (mode === null) throw apiError(404, 'NOT_FOUND', 'No encontramos ese ejercicio.');
+  const entry = exercisesRepo.addEntry(user.id, id, buildEntry(mode, body));
   if (!entry) throw apiError(404, 'NOT_FOUND', 'No encontramos ese ejercicio.');
   return c.json({ entry }, 201);
 });
@@ -107,11 +149,9 @@ exerciseRoutes.patch('/:id/entries/:entryId', async (c) => {
   const id = idParam(c, 'id');
   const entryId = idParam(c, 'entryId');
   const body = await readJson(c, entrySchema);
-  const ok = exercisesRepo.updateEntry(user.id, id, entryId, {
-    rmKg: body.rmKg,
-    date: body.date,
-    comment: toComment(body.comment),
-  });
+  const mode = exercisesRepo.gimnasticoMode(user.id, id);
+  if (mode === null) throw apiError(404, 'NOT_FOUND', 'No encontramos ese registro.');
+  const ok = exercisesRepo.updateEntry(user.id, id, entryId, buildEntry(mode, body));
   if (!ok) throw apiError(404, 'NOT_FOUND', 'No encontramos ese registro.');
   return c.json({ ok: true });
 });
@@ -124,7 +164,7 @@ exerciseRoutes.delete('/:id/entries/:entryId', (c) => {
     throw apiError(
       409,
       'LAST_ENTRY',
-      'Es el único RM del ejercicio. Si querés sacarlo, eliminá el ejercicio completo.',
+      'Es el único registro del ejercicio. Si querés sacarlo, eliminá el ejercicio completo.',
     );
   }
   return c.body(null, 204);
