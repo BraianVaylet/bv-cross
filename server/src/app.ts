@@ -54,6 +54,13 @@ app.use('/api/*', async (c, next) => {
 
 app.use('/api/*', bodyLimit({ maxSize: 16 * 1024 }));
 
+// Las respuestas de la API son por-usuario (cookies de sesión): el CDN de
+// Railway NUNCA debe cachearlas o se filtrarían datos entre usuarios.
+app.use('/api/*', async (c, next) => {
+  await next();
+  c.header('Cache-Control', 'private, no-store');
+});
+
 app.route('/api/auth', authRoutes);
 app.route('/api/exercises', exerciseRoutes);
 
@@ -67,6 +74,30 @@ app.onError((err, c) => {
   return c.json({ error: { code: 'INTERNAL', message: 'Ocurrió un error inesperado.' } }, 500);
 });
 
+// Cache-Control por tipo de archivo, pensado para el CDN de Railway.
+// El path puede venir con separadores '/' (Linux) o '\\' (Windows): normalizamos.
+function cacheControlFor(rawPath: string): string {
+  const path = rawPath.replace(/\\/g, '/');
+  const file = path.slice(path.lastIndexOf('/') + 1);
+  // Recursos con hash de contenido: cache eterno e inmutable (ideal para el CDN).
+  if (path.includes('/assets/') || /^workbox-[\w-]+\.js$/.test(file)) {
+    return 'public, max-age=31536000, immutable';
+  }
+  // Entrypoint, service worker y bootstrap (sin hash): revalidar siempre para
+  // no servir builds viejas tras un deploy.
+  if (
+    file === 'index.html' ||
+    file === 'manifest.webmanifest' ||
+    file === 'sw.js' ||
+    file === 'registerSW.js' ||
+    file === 'theme-init.js'
+  ) {
+    return 'no-cache';
+  }
+  // Iconos e imágenes sin hash: cache moderada revalidando.
+  return 'public, max-age=86400, must-revalidate';
+}
+
 // En producción el mismo proceso sirve el frontend compilado (single deploy).
 if (existsSync(CLIENT_DIST)) {
   const staticRoot = relative(process.cwd(), CLIENT_DIST) || '.';
@@ -75,19 +106,19 @@ if (existsSync(CLIENT_DIST)) {
     serveStatic({
       root: staticRoot,
       onFound: (path, c) => {
-        if (path.includes('/assets/')) {
-          c.header('Cache-Control', 'public, max-age=31536000, immutable');
-        }
+        c.header('Cache-Control', cacheControlFor(path));
       },
     }),
   );
-  // Fallback SPA: cualquier otra ruta devuelve index.html.
+  // Fallback SPA: cualquier otra ruta devuelve index.html (nunca cachear: debe
+  // reflejar el último build inmediatamente).
   const indexPath = join(CLIENT_DIST, 'index.html');
   let indexHtml: string | null = null;
   app.get('*', (c) => {
     if (indexHtml === null || !config.isProd) {
       indexHtml = readFileSync(indexPath, 'utf8');
     }
+    c.header('Cache-Control', 'no-cache');
     return c.html(indexHtml);
   });
 }
