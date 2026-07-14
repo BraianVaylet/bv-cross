@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthShell } from '../components/AuthShell';
 import { CheckIcon } from '../components/Icons';
-import { Button, Card, ErrorBanner, Input, buttonCx } from '../components/ui';
+import { Button, ButtonLink, Card, ErrorBanner, Input } from '../components/ui';
 import { api, errorMessage, firstFieldErrors } from '../lib/api';
 import type { SecurityQuestion } from '../lib/types';
 
@@ -60,9 +60,9 @@ export function Recover() {
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-accent">
             <CheckIcon className="h-8 w-8" />
           </div>
-          <Link to="/login" className={buttonCx({ size: 'lg', full: true })}>
+          <ButtonLink to="/login" size="lg" full>
             Iniciar sesión
-          </Link>
+          </ButtonLink>
         </div>
       </AuthShell>
     );

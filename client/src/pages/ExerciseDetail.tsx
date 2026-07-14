@@ -11,6 +11,7 @@ import { ImageIcon, MessageSquareIcon, PencilIcon, PlusIcon, TrashIcon, ZapIcon 
 import {
   Button,
   Card,
+  ButtonLink,
   ConfirmDialog,
   EmptyState,
   ErrorBanner,
@@ -18,7 +19,6 @@ import {
   Modal,
   Segmented,
   Skeleton,
-  buttonCx,
 } from '../components/ui';
 import { ApiError, api, errorMessage, firstFieldErrors } from '../lib/api';
 import { exerciseImage } from '../lib/exerciseImages';
@@ -174,9 +174,9 @@ export function ExerciseDetail() {
           title="No encontramos ese ejercicio"
           text="Puede que lo hayas eliminado."
           action={
-            <Link to="/" className={buttonCx({ variant: 'secondary' })}>
+            <ButtonLink to="/" variant="secondary">
               Ir a mis ejercicios
-            </Link>
+            </ButtonLink>
           }
         />
       </div>

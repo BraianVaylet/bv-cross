@@ -1,32 +1,21 @@
+import {
+  Alert as MedanoAlert,
+  Button as MedanoButton,
+  Card as MedanoCard,
+  EmptyState as MedanoEmptyState,
+  SegmentedControl as MedanoSegmentedControl,
+  Skeleton as MedanoSkeleton,
+  Spinner as MedanoSpinner,
+} from '@medano-ui/react';
 import { useEffect, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { Link } from 'react-router-dom';
 import { cx } from '../lib/cx';
-import { AlertIcon, CloseIcon } from './Icons';
+import { CloseIcon } from './Icons';
 
 /* ====== Botones ====== */
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'md' | 'lg' | 'sm';
-
-export function buttonCx(opts: {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  full?: boolean;
-} = {}): string {
-  const { variant = 'primary', size = 'md', full = false } = opts;
-  return cx(
-    'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors select-none',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50',
-    'disabled:pointer-events-none disabled:opacity-50',
-    size === 'sm' && 'h-9 px-3 text-sm',
-    size === 'md' && 'h-11 px-4 text-[15px]',
-    size === 'lg' && 'h-12 px-5 text-base',
-    full && 'w-full',
-    variant === 'primary' && 'bg-accent text-on-accent hover:bg-accent-strong active:bg-accent-strong',
-    variant === 'secondary' && 'border border-line bg-surface text-ink hover:bg-raised',
-    variant === 'ghost' && 'text-ink-muted hover:bg-raised hover:text-ink',
-    variant === 'danger' && 'bg-danger text-white hover:opacity-90',
-  );
-}
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
@@ -35,22 +24,60 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
 };
 
-export function Button({ variant, size, full, loading, className, children, disabled, ...rest }: ButtonProps) {
+/** Adapter sobre medano-ui: firma legacy (full → fullWidth, type=button). */
+export function Button({ variant, size, full, className, children, ...rest }: ButtonProps) {
   return (
-    <button
+    <MedanoButton
       type={rest.type ?? 'button'}
-      className={cx(buttonCx({ variant, size, full }), className)}
-      disabled={disabled || loading}
+      variant={variant}
+      size={size}
+      fullWidth={full}
+      className={className}
       {...rest}
     >
-      {loading && <Spinner className="h-4 w-4" />}
       {children}
-    </button>
+    </MedanoButton>
+  );
+}
+
+/**
+ * Link de react-router con aspecto de botón medano (reemplaza a buttonCx).
+ * Usa las clases públicas de medano — Button no acepta render prop todavía
+ * (anotado en GAPS.md de la librería).
+ */
+export function ButtonLink({
+  to,
+  variant = 'primary',
+  size = 'md',
+  full,
+  className,
+  children,
+}: {
+  to: string;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  full?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      className={cx('medano-button', full && 'w-full', className)}
+      data-variant={variant}
+      data-size={size}
+    >
+      {children}
+    </Link>
   );
 }
 
 /* ====== Campos de formulario ====== */
 
+/* Estructura label + control + error/hint con las clases públicas de
+ * medano-ui. Se mantiene el shell propio porque el Input de medano exige
+ * label (acá es opcional) y no soporta suffix (gap anotado). El estado
+ * inválido lo estila medano vía [aria-invalid]. */
 function FieldShell({
   id,
   label,
@@ -67,26 +94,21 @@ function FieldShell({
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-ink-muted">
+        <label htmlFor={id} className="medano-field__label block">
           {label}
         </label>
       )}
       {children}
       {error ? (
-        <p className="text-sm text-danger">{error}</p>
+        <p className="medano-field__error">{error}</p>
       ) : hint ? (
-        <p className="text-sm text-ink-dim">{hint}</p>
+        <p className="medano-field__help">{hint}</p>
       ) : null}
     </div>
   );
 }
 
-const inputCx = (hasError?: boolean) =>
-  cx(
-    'h-11 w-full rounded-xl border bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-dim',
-    'outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/25',
-    hasError ? 'border-danger' : 'border-line',
-  );
+const inputCx = (_hasError?: boolean) => 'medano-field__input w-full';
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
@@ -101,7 +123,12 @@ export function Input({ label, error, hint, suffix, className, id, ...rest }: In
   return (
     <FieldShell id={inputId} label={label} error={error} hint={hint}>
       <div className="relative">
-        <input id={inputId} className={cx(inputCx(!!error), suffix && 'pr-10', className)} {...rest} />
+        <input
+          id={inputId}
+          aria-invalid={error ? true : undefined}
+          className={cx(inputCx(!!error), suffix && 'pr-10', className)}
+          {...rest}
+        />
         {suffix && (
           <span className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-sm text-ink-dim">
             {suffix}
@@ -125,12 +152,8 @@ export function Textarea({ label, error, hint, className, id, ...rest }: Textare
     <FieldShell id={inputId} label={label} error={error} hint={hint}>
       <textarea
         id={inputId}
-        className={cx(
-          'w-full rounded-xl border bg-surface px-3.5 py-2.5 text-[15px] text-ink placeholder:text-ink-dim',
-          'outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/25',
-          error ? 'border-danger' : 'border-line',
-          className,
-        )}
+        aria-invalid={error ? true : undefined}
+        className={cx('medano-field__input medano-field__textarea w-full', className)}
         {...rest}
       />
     </FieldShell>
@@ -148,7 +171,12 @@ export function Select({ label, error, hint, className, id, children, ...rest }:
   const inputId = id ?? autoId;
   return (
     <FieldShell id={inputId} label={label} error={error} hint={hint}>
-      <select id={inputId} className={cx(inputCx(!!error), 'appearance-none pr-9', className)} {...rest}>
+      <select
+        id={inputId}
+        aria-invalid={error ? true : undefined}
+        className={cx(inputCx(!!error), 'appearance-none pr-9', className)}
+        {...rest}
+      >
         {children}
       </select>
     </FieldShell>
@@ -158,39 +186,32 @@ export function Select({ label, error, hint, className, id, children, ...rest }:
 /* ====== Superficies y estados ====== */
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cx('rounded-2xl border border-line bg-surface p-4', className)}>{children}</div>;
+  return <MedanoCard className={className}>{children}</MedanoCard>;
 }
 
+/** Adapter sobre medano-ui: la firma legacy usa children como título. */
 export function ErrorBanner({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex items-start gap-2.5 rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-3 text-sm text-danger">
-      <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
-      <div>{children}</div>
-    </div>
-  );
+  return <MedanoAlert tone="danger" title={children} />;
 }
 
+/** Adapter sobre medano-ui; el tamaño se sigue dando por className (h-*, w-*). */
 export function Spinner({ className }: { className?: string }) {
-  return (
-    <svg className={cx('animate-spin', className ?? 'h-5 w-5')} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
-    </svg>
-  );
+  return <MedanoSpinner className={className} />;
 }
 
 export function FullScreenSpinner() {
   return (
     <div className="flex min-h-dvh items-center justify-center text-accent">
-      <Spinner className="h-7 w-7" />
+      <MedanoSpinner size="lg" label="Cargando" />
     </div>
   );
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cx('animate-pulse rounded-xl bg-raised', className)} />;
+  return <MedanoSkeleton className={className} />;
 }
 
+/** Adapter sobre medano-ui: la firma legacy llama `text` a description. */
 export function EmptyState({
   icon,
   title,
@@ -202,14 +223,7 @@ export function EmptyState({
   text?: string;
   action?: ReactNode;
 }) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line px-6 py-12 text-center">
-      {icon && <div className="text-ink-dim">{icon}</div>}
-      <h3 className="font-display text-lg font-semibold text-ink">{title}</h3>
-      {text && <p className="max-w-xs text-sm text-ink-muted">{text}</p>}
-      {action && <div className="mt-2">{action}</div>}
-    </div>
-  );
+  return <MedanoEmptyState icon={icon} title={title} description={text} action={action} />;
 }
 
 /* ====== Logo ======
@@ -290,6 +304,7 @@ export function Logo({ size = 'md' }: { size?: 'md' | 'lg' }) {
 
 /* ====== Segmented control ====== */
 
+/** Adapter sobre medano-ui (radios nativos, label obligatorio para SR). */
 export function Segmented<T extends string>({
   options,
   value,
@@ -302,28 +317,13 @@ export function Segmented<T extends string>({
   label?: string;
 }) {
   return (
-    <div className="space-y-1.5">
-      {label && <span className="block text-sm font-medium text-ink-muted">{label}</span>}
-      <div className="flex rounded-xl bg-raised p-1" role="group" aria-label={label}>
-        {options.map((opt) => {
-          const active = opt.value === value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onChange(opt.value)}
-              className={cx(
-                'h-9 flex-1 rounded-lg text-sm font-medium transition-colors',
-                active ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink',
-              )}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <MedanoSegmentedControl
+      label={label ?? 'Opciones'}
+      options={options}
+      value={value}
+      onValueChange={(v) => onChange(v as T)}
+      fullWidth
+    />
   );
 }
 
