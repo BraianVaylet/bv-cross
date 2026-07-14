@@ -5,3 +5,7 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   sharp: true
+minimumReleaseAgeExclude:
+  - '@medano-ui/fonts@0.1.0'
+  - '@medano-ui/react@0.1.0'
+  - '@medano-ui/tokens@0.1.0'

@@ -1,38 +1,31 @@
+@import "@medano-ui/fonts/medano-sans.css";
+@import "@medano-ui/tokens/vars.css";
+@import "@medano-ui/react/styles.css";
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* El tema pasa de clase .dark a data-theme, igual que las apps hermanas y
+   @medano-ui/tokens (dark por defecto, [data-theme="light"] explícito). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* ====== Tokens semánticos (estética cálida tipo Claude) ====== */
+/* ── Bridge a tokens medano-ui ─────────────────────────────────────────────
+   Las vars semánticas legacy (--c-*) apuntan a los tokens de @medano-ui/tokens,
+   así todas las clases Tailwind existentes se re-skinean sin tocar componentes.
+   El acento elegido sobrescribe --medano-accent-* en runtime (theme-init.js +
+   lib/theme.tsx); sin acento guardado vale brasa (nativo). */
 :root {
-  --c-base: #F7F8F3;
-  --c-surface: #FFFFFF;
-  --c-raised: #ECEEE5;
-  --c-ink: #1E241A;
-  --c-ink-muted: #5C6356;
-  --c-ink-dim: #8B9281;
-  --c-line: #E2E5DA;
-  --c-accent: #FF5722;
-  --c-accent-strong: #E64A19;
-  --c-accent-soft: #FFE0D6;
-  --c-on-accent: #3E0F00;
-  --c-danger: #C9403F;
-  --c-ok: #2F9E6F;
-}
-
-.dark {
-  --c-base: #191B16;
-  --c-surface: #24271F;
-  --c-raised: #2F332A;
-  --c-ink: #E8EBE1;
-  --c-ink-muted: #A0A697;
-  --c-ink-dim: #71776A;
-  --c-line: #353930;
-  --c-accent: #FF6E4A;
-  --c-accent-strong: #FF8A6E;
-  --c-accent-soft: #3D1508;
-  --c-on-accent: #FFE0D6;
-  --c-danger: #E5615F;
-  --c-ok: #56C08A;
+  --c-base: var(--medano-surface-0);
+  --c-surface: var(--medano-surface-1);
+  --c-raised: var(--medano-surface-2);
+  --c-ink: var(--medano-ink-primary);
+  --c-ink-muted: var(--medano-ink-secondary);
+  --c-ink-dim: var(--medano-ink-muted);
+  --c-line: var(--medano-border-subtle);
+  --c-accent: var(--medano-accent-base);
+  --c-accent-strong: var(--medano-accent-strong);
+  --c-accent-soft: var(--medano-accent-subtle);
+  --c-on-accent: var(--medano-ink-on-accent);
+  --c-danger: var(--medano-feedback-danger);
+  --c-ok: var(--medano-feedback-positive);
 }
 
 @theme inline {
@@ -52,19 +45,16 @@
 }
 
 @theme {
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
-    "Times New Roman", serif;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+  /* Unificación medano: la serif editorial se retira; títulos y cuerpo usan
+     medano Sans (self-hosted vía @medano-ui/fonts). */
+  --font-display: "medano Sans", system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "medano Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 @layer base {
-  html {
-    color-scheme: light;
-  }
-  .dark {
-    color-scheme: dark;
-  }
+  /* color-scheme lo maneja @medano-ui/tokens según data-theme. */
   body {
     background-color: var(--c-base);
     color: var(--c-ink);

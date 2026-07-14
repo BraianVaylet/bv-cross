@@ -1,14 +1,16 @@
 // Aplica el tema y el acento antes del primer paint para evitar parpadeo (FOUC).
-// La lógica de derivación del acento debe coincidir con src/lib/theme.tsx.
+// Escribe sobre los tokens de medano-ui; sin acento guardado no escribe nada
+// (vale el acento nativo «brasa»). La derivación debe coincidir con src/lib/theme.tsx.
 (function () {
   try {
     var saved = localStorage.getItem('bv-theme');
     var dark = saved
       ? saved === 'dark'
       : window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (dark) document.documentElement.classList.add('dark');
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', dark ? '#191B16' : '#F7F8F3');
+    // Aproximaciones de --medano-surface-0 por tema.
+    if (meta) meta.setAttribute('content', dark ? '#201e1a' : '#faf9f3');
 
     var ACCENTS = {
       orange: '#FF5722',
@@ -19,7 +21,9 @@
       magenta: '#C430D1',
     };
     var DARK_INK = '#2A1206';
-    var base = ACCENTS[localStorage.getItem('bv-accent')] || ACCENTS.orange;
+    var storedAccent = localStorage.getItem('bv-accent');
+    var base = ACCENTS[storedAccent];
+    if (!base) return;
 
     function rgb(hex) {
       var h = hex.replace('#', '');
@@ -53,13 +57,15 @@
     var l = lum(accent);
     var onAccent = contrast(l, 1) >= contrast(l, lum(DARK_INK)) ? '#ffffff' : DARK_INK;
     var strong = dark ? mix(accent, '#ffffff', 0.18) : mix(accent, '#000000', 0.16);
-    var soft = dark ? mix(accent, '#000000', 0.8) : mix(accent, '#ffffff', 0.86);
+    var a = rgb(accent);
+    var rgbArgs = a[0] + ', ' + a[1] + ', ' + a[2];
     var s = document.documentElement.style;
-    s.setProperty('--c-accent', accent);
-    s.setProperty('--c-accent-strong', strong);
-    s.setProperty('--c-accent-soft', soft);
-    s.setProperty('--c-on-accent', onAccent);
+    s.setProperty('--medano-accent-base', accent);
+    s.setProperty('--medano-accent-strong', strong);
+    s.setProperty('--medano-accent-subtle', 'rgba(' + rgbArgs + ', 0.16)');
+    s.setProperty('--medano-ink-on-accent', onAccent);
+    s.setProperty('--medano-border-focus', 'rgba(' + rgbArgs + ', 0.75)');
   } catch (e) {
-    /* sin acceso a storage: tema claro + acento naranja por defecto */
+    /* sin acceso a storage: tema claro + acento brasa por defecto */
   }
 })();
