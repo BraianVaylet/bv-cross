@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@medano-ui/react': file:../bv-medano-ui/packages/react
+
 importers:
 
   .: {}
@@ -11,14 +14,14 @@ importers:
   client:
     dependencies:
       '@medano-ui/fonts':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^1.0.2
+        version: 1.0.2
       '@medano-ui/react':
-        specifier: ^0.1.0
-        version: 0.1.0(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: file:../../bv-medano-ui/packages/react
+        version: file:../bv-medano-ui/packages/react(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@medano-ui/tokens':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^1.0.2
+        version: 1.0.2
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1109,17 +1112,17 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@medano-ui/fonts@0.1.0':
-    resolution: {integrity: sha512-Xa3q5LndyP7xNArrkYcOWW4deo9CHs9rglG+QL6ujXOg5iHFWTP3345fnhGiUp1nMTl15Bin0U26n1X0rEOL+Q==}
+  '@medano-ui/fonts@1.0.2':
+    resolution: {integrity: sha512-9tu3F7w9PL3NddBzp5qon7tv17Eekyld6wk28UrcBHXFwqn2L4HoTa+PPhNJLPA9PsaUrGZb0j20/u6pPQ4boQ==}
 
-  '@medano-ui/react@0.1.0':
-    resolution: {integrity: sha512-vJcNACaUKIB1rdzRRengIFdSDH0dftOO8PHR3V3ciEcUaVghxazEufoSHaDML7bTe5Ebwkzab/xMIt0n052ORA==}
+  '@medano-ui/react@file:../bv-medano-ui/packages/react':
+    resolution: {directory: ../bv-medano-ui/packages/react, type: directory}
     peerDependencies:
       react: '>=18.3'
       react-dom: '>=18.3'
 
-  '@medano-ui/tokens@0.1.0':
-    resolution: {integrity: sha512-V9/WPxpBkJLLwfEnafgfcMqhs+f77wRGbzJtCf0eb63+HOBo8I1QpFx5yNOx4JWG8rgutA4ObHS+7Gfr76Uiwg==}
+  '@medano-ui/tokens@1.0.2':
+    resolution: {integrity: sha512-uawtWDXCCil+TsW4dK1mwhx35gSTKqyFx4W+ggT7M8pIq3EOrFtOUhvBZhf4bCW/s1FN1PzQOeeoUrGG2F3qbQ==}
 
   '@remix-run/router@1.23.3':
     resolution: {integrity: sha512-4An71tdz9X8+3sI4Qqqd2LWd9vS39J7sqd9EU4Scw7TJE/qB10Flv/UuqbPVgfQV9XoK8Np6jNquZitnZq5i+Q==}
@@ -3689,9 +3692,9 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@medano-ui/fonts@0.1.0': {}
+  '@medano-ui/fonts@1.0.2': {}
 
-  '@medano-ui/react@0.1.0(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@medano-ui/react@file:../bv-medano-ui/packages/react(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@base-ui/react': 1.6.0(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
@@ -3701,7 +3704,7 @@ snapshots:
       - '@types/react'
       - date-fns
 
-  '@medano-ui/tokens@0.1.0': {}
+  '@medano-ui/tokens@1.0.2': {}
 
   '@remix-run/router@1.23.3': {}
 

@@ -11,9 +11,9 @@
     "gen:assets": "node scripts/gen-assets.mjs"
   },
   "dependencies": {
-    "@medano-ui/fonts": "^0.1.0",
-    "@medano-ui/react": "^0.1.0",
-    "@medano-ui/tokens": "^0.1.0",
+    "@medano-ui/fonts": "^1.0.2",
+    "@medano-ui/react": "^1.0.2",
+    "@medano-ui/tokens": "^1.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.0"

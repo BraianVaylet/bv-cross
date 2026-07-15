@@ -1,6 +1,11 @@
 import type { ReactNode } from 'react';
+import { AuthLayout } from '@medano-ui/react';
 import { Logo } from './ui';
 
+/**
+ * Layout de autenticación. Usa el template único de la familia (AuthLayout de
+ * medano); lo propio de cross es el logo y el nombre.
+ */
 export function AuthShell({
   title,
   subtitle,
@@ -13,16 +18,8 @@ export function AuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-10">
-      <div className="mb-7 text-center">
-        <div className="flex justify-center">
-          <Logo size="lg" />
-        </div>
-        <h1 className="mt-5 font-display text-[22px] font-semibold text-ink">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
-      </div>
+    <AuthLayout logo={<Logo />} appName="BV Cross" title={title} subtitle={subtitle} footer={footer}>
       {children}
-      {footer && <div className="mt-6 text-center text-sm text-ink-muted">{footer}</div>}
-    </div>
+    </AuthLayout>
   );
 }
