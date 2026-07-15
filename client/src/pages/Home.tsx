@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { BarbellIcon, ChevronRightIcon, MessageSquareIcon, PlusIcon, ZapIcon } from '../components/Icons';
-import { EmptyState, ErrorBanner, Skeleton, buttonCx } from '../components/ui';
+import { ButtonLink, EmptyState, ErrorBanner, Skeleton } from '../components/ui';
 import { api, errorMessage } from '../lib/api';
 import { fmtDate, fmtKg } from '../lib/format';
 import type { ExerciseListItem } from '../lib/types';
@@ -42,9 +42,9 @@ export function Home() {
           title="Todavía no cargaste ejercicios"
           text="Registrá tu primer RM para empezar a calcular cargas."
           action={
-            <Link to="/exercises/new" className={buttonCx()}>
+            <ButtonLink to="/exercises/new">
               <PlusIcon className="h-4 w-4" /> Nuevo ejercicio
-            </Link>
+            </ButtonLink>
           }
         />
       )}
@@ -109,12 +109,9 @@ export function Home() {
         <div className="fixed inset-x-0 bottom-0 z-30">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-base via-base/80 to-transparent" />
           <div className="relative mx-auto w-full max-w-md px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
-            <Link
-              to="/exercises/new"
-              className={buttonCx({ size: 'lg', full: true }) + ' shadow-lg shadow-accent/25'}
-            >
+            <ButtonLink to="/exercises/new" size="lg" full className="shadow-lg shadow-accent/25">
               <PlusIcon className="h-5 w-5" /> Nuevo ejercicio
-            </Link>
+            </ButtonLink>
           </div>
         </div>
       )}

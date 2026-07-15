@@ -12,13 +12,13 @@ import { CheckIcon, PencilIcon, PlusIcon, TrashIcon, ZapIcon } from '../componen
 import {
   Button,
   Card,
+  ButtonLink,
   ConfirmDialog,
   EmptyState,
   ErrorBanner,
   Input,
   Skeleton,
   Textarea,
-  buttonCx,
 } from '../components/ui';
 import { ApiError, api, errorMessage, firstFieldErrors } from '../lib/api';
 import { cx } from '../lib/cx';
@@ -224,9 +224,9 @@ export function EditExercise() {
           title="No encontramos ese ejercicio"
           text="Puede que lo hayas eliminado."
           action={
-            <Link to="/" className={buttonCx({ variant: 'secondary' })}>
+            <ButtonLink to="/" variant="secondary">
               Ir a mis ejercicios
-            </Link>
+            </ButtonLink>
           }
         />
       </div>

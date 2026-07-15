@@ -22,8 +22,9 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#F7F8F3',
-        theme_color: '#F7F8F3',
+        // Aproximación de --medano-surface-0 (light) de @medano-ui/tokens.
+        background_color: '#faf9f3',
+        theme_color: '#faf9f3',
         icons: [
           { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
