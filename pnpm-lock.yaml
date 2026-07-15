@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@medano-ui/react': file:../bv-medano-ui/packages/react
-
 importers:
 
   .: {}
@@ -17,8 +14,8 @@ importers:
         specifier: ^1.0.2
         version: 1.0.2
       '@medano-ui/react':
-        specifier: file:../../bv-medano-ui/packages/react
-        version: file:../bv-medano-ui/packages/react(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^1.0.2
+        version: 1.0.2(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@medano-ui/tokens':
         specifier: ^1.0.2
         version: 1.0.2
@@ -1115,8 +1112,8 @@ packages:
   '@medano-ui/fonts@1.0.2':
     resolution: {integrity: sha512-9tu3F7w9PL3NddBzp5qon7tv17Eekyld6wk28UrcBHXFwqn2L4HoTa+PPhNJLPA9PsaUrGZb0j20/u6pPQ4boQ==}
 
-  '@medano-ui/react@file:../bv-medano-ui/packages/react':
-    resolution: {directory: ../bv-medano-ui/packages/react, type: directory}
+  '@medano-ui/react@1.0.2':
+    resolution: {integrity: sha512-W3S6xVYWy7S1+FumAOkkXYSNI+oIA2kIlwnyzkbxoUE8Ny0utTcdANe4AiyISmmSNBhG0LbAImw7LsVcqaMbsw==}
     peerDependencies:
       react: '>=18.3'
       react-dom: '>=18.3'
@@ -3694,7 +3691,7 @@ snapshots:
 
   '@medano-ui/fonts@1.0.2': {}
 
-  '@medano-ui/react@file:../bv-medano-ui/packages/react(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@medano-ui/react@1.0.2(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@base-ui/react': 1.6.0(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1

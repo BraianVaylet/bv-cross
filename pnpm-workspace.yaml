@@ -10,7 +10,3 @@ allowBuilds:
 # cubre cualquier versión (evita tener que fijar cada bump).
 minimumReleaseAgeExclude:
   - '@medano-ui/*'
-# Consume el build local de medano-ui mientras se prueban los cambios.
-# Publicá @medano-ui/react a npm y quitá este override para volver al registro.
-overrides:
-  "@medano-ui/react": "file:../bv-medano-ui/packages/react"
